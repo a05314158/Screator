@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import type { Lesson } from '../types';import {
+import type { Lesson } from '../types';
+import {
   Plus,
   Search,
   Edit2,
@@ -8,11 +9,7 @@ import type { Lesson } from '../types';import {
   X,
   AlertCircle,
   Layers,
-  BookOpen,
   GraduationCap,
-  Users,
-  DoorClosed,
-  Clock,
   Check
 } from 'lucide-react';
 
@@ -209,7 +206,7 @@ export const LessonsView = () => {
         </div>
       </div>
 
-      {/* Таблица назначенных уроков */}
+      {/* таблица */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-sm min-w-[860px]">
@@ -231,7 +228,6 @@ export const LessonsView = () => {
 
                 return (
                   <tr key={lesson.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* Предмет */}
                     <td className="py-3.5 px-4">
                       {subject ? (
                         <div className="flex items-center gap-2">
@@ -246,7 +242,6 @@ export const LessonsView = () => {
                       )}
                     </td>
 
-                    {/* Учителя */}
                     <td className="py-3.5 px-4 text-xs font-medium text-slate-800">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {assignedTeachers.map((t) => (
@@ -258,7 +253,6 @@ export const LessonsView = () => {
                       </div>
                     </td>
 
-                    {/* Классы и подгруппы */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {lesson.targets.map((tgt, i) => {
@@ -281,14 +275,12 @@ export const LessonsView = () => {
                       </div>
                     </td>
 
-                    {/* Часы */}
                     <td className="py-3.5 px-4 text-center font-bold text-slate-900 text-sm">
                       <span className="px-2.5 py-1 bg-slate-100 rounded-lg text-slate-800">
                         {lesson.hoursPerWeek} ч.
                       </span>
                     </td>
 
-                    {/* Формат (Одиночный / Сдвоенный) */}
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       {lesson.slotLength === 2 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
@@ -299,7 +291,6 @@ export const LessonsView = () => {
                       )}
                     </td>
 
-                    {/* Кабинеты */}
                     <td className="py-3.5 px-4 text-xs text-slate-600">
                       <div className="flex items-center gap-1 flex-wrap">
                         {lesson.useHomeRoom && (
@@ -323,7 +314,6 @@ export const LessonsView = () => {
                       </div>
                     </td>
 
-                    {/* Действия */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1">
                         <button
@@ -350,11 +340,9 @@ export const LessonsView = () => {
         </div>
       </div>
 
-      {/* Модальное окно создания / редактирования урока */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {/* Хедер модалки */}
             <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-emerald-600" />
@@ -367,7 +355,6 @@ export const LessonsView = () => {
               </button>
             </div>
 
-            {/* Тело модалки */}
             <div className="p-6 overflow-y-auto space-y-6 text-sm">
               {errorMessage && (
                 <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
@@ -376,7 +363,6 @@ export const LessonsView = () => {
                 </div>
               )}
 
-              {/* Выбор предмета */}
               <div>
                 <label className="block font-medium text-slate-700 mb-1">Предмет / Дисциплина *</label>
                 <select
@@ -391,7 +377,6 @@ export const LessonsView = () => {
                 </select>
               </div>
 
-              {/* Выбор преподавателей (поддержка со-преподавания) */}
               <div>
                 <label className="block font-medium text-slate-700 mb-1.5">
                   Преподаватель(и) * <span className="text-xs text-slate-400 font-normal">(кликните для выбора нескольких)</span>
@@ -418,7 +403,6 @@ export const LessonsView = () => {
                 </div>
               </div>
 
-              {/* Выбор классов и подгрупп (поддержка объединений Joint classes) */}
               <div>
                 <label className="block font-medium text-slate-700 mb-1.5">
                   Классы и подгруппы * <span className="text-xs text-slate-400 font-normal">(выберите целевую группу)</span>
@@ -426,7 +410,6 @@ export const LessonsView = () => {
                 <div className="space-y-2 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-44 overflow-y-auto">
                   {classes.map((c) => (
                     <div key={c.id} className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200">
-                      {/* Чекбокс всего класса */}
                       <button
                         type="button"
                         onClick={() => toggleClassTarget(c.id, undefined)}
@@ -439,7 +422,6 @@ export const LessonsView = () => {
                         {c.name} (Весь класс)
                       </button>
 
-                      {/* Подгруппы этого класса */}
                       <div className="flex items-center gap-1.5 flex-wrap pl-2 border-l border-slate-200">
                         {c.subgroups?.map((sg) => {
                           const isSelected = formData.targets?.some((t) => t.classId === c.id && t.subgroupId === sg.id);
@@ -464,7 +446,6 @@ export const LessonsView = () => {
                 </div>
               </div>
 
-              {/* Часы и формат (Одиночный / Пара) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border">
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -481,7 +462,7 @@ export const LessonsView = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Формат уроков</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">формат уроков</label>
                   <select
                     value={formData.slotLength || 1}
                     onChange={(e) => setFormData({ ...formData, slotLength: Number(e.target.value) as 1 | 2 })}
@@ -493,7 +474,6 @@ export const LessonsView = () => {
                 </div>
               </div>
 
-              {/* Назначение кабинетов */}
               <div className="space-y-3">
                 <label className="block font-medium text-slate-700">Кабинеты для проведения</label>
 
@@ -519,7 +499,6 @@ export const LessonsView = () => {
                   </label>
                 </div>
 
-                {/* Выбор спец-кабинетов */}
                 <div className="flex items-center gap-1.5 flex-wrap pt-1">
                   {classrooms.map((room) => {
                     const isSelected = formData.allowedRoomIds?.includes(room.id);
@@ -542,7 +521,6 @@ export const LessonsView = () => {
               </div>
             </div>
 
-            {/* Футер модалки */}
             <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-slate-50">
               <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 border border-slate-300 rounded-lg text-sm">
                 Отмена
