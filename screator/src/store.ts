@@ -21,6 +21,7 @@ import {
   sanitizeEmail,
   normalizeTimeGrid,
 } from './utils/security';
+import { getTimetableConflicts, validateCardPlacement } from './utils/timetableValidation';
 
 function addMinutesToTime(timeStr: string, minutesToAdd: number): string {
   const [hours, mins] = timeStr.split(':').map(Number);
@@ -685,58 +686,77 @@ export const useAppStore = create<AppState>()(
 
       placeCard: (cardId, day, slot) => {
         const state = get();
-        const card = state.cards.find((c) => c.id === cardId);
+        const card = state.cards.find((item) => item.id === cardId);
         if (!card) return { success: false, error: 'Карточка не найдена.' };
 
-        const targetClassIds = card.targets.map((t) => t.classId);
+        const lesson = state.lessons.find((item) => item.id === card.lessonId);
+        if (!lesson) return { success: false, error: 'Для карточки не найдена учебная нагрузка.' };
+        const homeRoomId = card.targets.length === 1
+          ? state.classes.find((item) => item.id === card.targets[0].classId)?.homeRoomId
+          : undefined;
+        const teacherRoomId = state.teachers.find((item) => item.id === card.teacherIds[0])?.defaultRoomId;
+        const roomId = card.roomId ?? lesson.allowedRoomIds[0]
+          ?? (lesson.useHomeRoom ? homeRoomId : undefined)
+          ?? (lesson.useTeacherRoom ? teacherRoomId : undefined);
+        if (!roomId) return { success: false, error: 'Уроку необходимо назначить кабинет.' };
 
-        const occupied = state.cards.find((c) => {
-          if (c.id === cardId || c.day !== day || c.slot !== slot) return false;
-          const sharesTeacher = c.teacherIds.some((tid) => card.teacherIds.includes(tid));
-          const sharesRoom = !!(c.roomId && card.roomId && c.roomId === card.roomId);
-          const sharesClass = c.targets.some((t) => targetClassIds.includes(t.classId));
-          return sharesTeacher || sharesRoom || sharesClass;
-        });
-
-        if (occupied) {
-          return { success: false, error: 'Конфликт: в этом слоте уже занят учитель, кабинет или класс.' };
+        const partner = card.pairGroupId
+          ? state.cards.find((item) => item.pairGroupId === card.pairGroupId && item.id !== card.id)
+          : undefined;
+        if (card.pairGroupId && (!partner || !card.pairIndex || !partner.pairIndex || card.pairIndex === partner.pairIndex)) {
+          return { success: false, error: 'Пара повреждена: не найдены обе половины урока.' };
         }
+        const partnerSlot = card.pairIndex === 1 ? slot + 1 : slot - 1;
+        const groupIds = new Set([card.id, ...(partner ? [partner.id] : [])]);
+        const context = {
+          cards: state.cards.filter((item) => !groupIds.has(item.id)),
+          classes: state.classes,
+          classrooms: state.classrooms,
+          settings: state.settings,
+          subjects: state.subjects,
+          teachers: state.teachers,
+        };
+        const proposals = [
+          { item: { ...card, roomId }, position: slot },
+          ...(partner ? [{ item: { ...partner, roomId }, position: partnerSlot }] : []),
+        ];
+        const issues = proposals.flatMap(({ item, position }) =>
+          validateCardPlacement(item, { day, slot: position }, context)
+        );
+        if (issues.length > 0) return { success: false, error: issues[0].message };
 
-        set((s) => ({
-          cards: s.cards.map((c) => (c.id === cardId ? { ...c, day, slot } : c)),
+        set((current) => ({
+          cards: current.cards.map((item) => {
+            const proposal = proposals.find(({ item: next }) => next.id === item.id);
+            return proposal ? { ...item, roomId, day, slot: proposal.position } : item;
+          }),
         }));
         return { success: true };
       },
 
       unplaceCard: (cardId) =>
-        set((s) => ({
-          cards: s.cards.map((c) => (c.id === cardId ? { ...c, day: null, slot: null } : c)),
-        })),
+        set((state) => {
+          const card = state.cards.find((item) => item.id === cardId);
+          if (!card) return state;
+          return {
+            cards: state.cards.map((item) =>
+              item.id === cardId || (card.pairGroupId && item.pairGroupId === card.pairGroupId)
+                ? { ...item, day: null, slot: null }
+                : item
+            ),
+          };
+        }),
 
       getConflicts: () => {
-        const { cards } = get();
-        const conflicts: ConflictInfo[] = [];
-        const placed = cards.filter((c) => c.day !== null && c.slot !== null);
-
-        placed.forEach((card) => {
-          const sameSlot = placed.filter(
-            (c) => c.id !== card.id && c.day === card.day && c.slot === card.slot
-          );
-          sameSlot.forEach((other) => {
-            if (other.teacherIds.some((tid) => card.teacherIds.includes(tid))) {
-              conflicts.push({ cardId: card.id, type: 'teacher', message: 'Учитель занят на другом уроке' });
-            }
-            if (other.roomId && card.roomId && other.roomId === card.roomId) {
-              conflicts.push({ cardId: card.id, type: 'classroom', message: 'Кабинет уже занят' });
-            }
-            const cardClassIds = card.targets.map((t) => t.classId);
-            if (other.targets.some((t) => cardClassIds.includes(t.classId))) {
-              conflicts.push({ cardId: card.id, type: 'class', message: 'У класса уже есть урок в этом слоте' });
-            }
-          });
+        const state = get();
+        return getTimetableConflicts({
+          cards: state.cards,
+          classes: state.classes,
+          classrooms: state.classrooms,
+          settings: state.settings,
+          subjects: state.subjects,
+          teachers: state.teachers,
         });
-
-        return conflicts;
       },
     }),
     {
